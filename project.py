@@ -81,7 +81,7 @@ from ultralytics import YOLO, solutions
 model = YOLO("best.pt")
 
 # Open the video file
-cap = cv2.VideoCapture("input.mp4")
+cap = cv2.VideoCapture("input2.mp4")
 assert cap.isOpened(), "Error reading video file"
 
 # Get video properties
@@ -90,10 +90,10 @@ h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = int(cap.get(cv2.CAP_PROP_FPS))
 
 # Define line points
-line_points = [(20, 400), (1180, 400)]
+line_points = [(20, 400), (1200, 400)]
 
 # Video writer
-video_writer = cv2.VideoWriter("object_counting_output1.avi", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+video_writer = cv2.VideoWriter("object_counting_output6.avi", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
 
 # Initialize Object Counter
 counter = solutions.ObjectCounter(
@@ -105,7 +105,9 @@ counter = solutions.ObjectCounter(
 )
 
 # Define confidence threshold
-confidence_threshold = 0.5
+confidence_threshold = 0.9
+weed_class_id = 1  # Assuming 1 is the class ID for weeds
+sugarbeet_class_id = 0  # Assuming 0 is the class ID for sugarbeets
 
 while cap.isOpened():
     success, im0 = cap.read()
@@ -118,10 +120,19 @@ while cap.isOpened():
 
     if results and results[0].boxes is not None:
         boxes = results[0].boxes.data.cpu().numpy()  # Convert boxes to numpy array
-        filtered_boxes = boxes[boxes[:, 4] > confidence_threshold]  # Filter by confidence score
-        results[0].boxes.data = torch.tensor(filtered_boxes).to(results[0].boxes.data.device)
 
-    # Start counting with filtered tracks
+        # Iterate over each box
+        for box in boxes:
+            conf = box[4]  # Confidence score
+            cls = int(box[5])  # Class label
+
+            # Relabel weeds with low confidence as sugarbeet
+            if conf < confidence_threshold and cls == weed_class_id:
+                box[5] = sugarbeet_class_id
+
+        results[0].boxes.data = torch.tensor(boxes).to(results[0].boxes.data.device)
+
+    # Start counting with modified tracks
     im0 = counter.start_counting(im0, results)
     video_writer.write(im0)
 
