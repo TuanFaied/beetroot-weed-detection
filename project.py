@@ -2,11 +2,50 @@ import cv2
 import torch
 from ultralytics import YOLO, solutions
 
+
+# import cv2
+
+# Initialize the webcam (0 is the default camera)
+cap = cv2.VideoCapture(1)
+
+# Check if the webcam is opened correctly
+if not cap.isOpened():
+    print("Error: Could not open webcam.")
+    exit()
+
+# Define the codec and create a VideoWriter object to save the video
+# 'XVID' codec is commonly used for .avi files
+fourcc = cv2.VideoWriter_fourcc(*'XVID')
+out = cv2.VideoWriter('input_video.avi', fourcc, 20.0, (640, 480))
+
+print("Recording... Press 'q' to stop.")
+
+while True:
+    ret, frame = cap.read()  # Capture frame-by-frame
+    if not ret:
+        print("Error: Could not read frame.")
+        break
+    
+    # Write the frame to the video file
+    out.write(frame)
+
+    # Display the resulting frame
+    cv2.imshow('Recording', frame)
+
+    # Stop recording if 'q' is pressed
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release everything when the recording is finished
+cap.release()
+out.release()
+cv2.destroyAllWindows()
+
 # Load the YOLO model
 model = YOLO("best.pt")
 
 # Open the video file
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("input_video.avi")
 assert cap.isOpened(), "Error reading video file"
 
 # Get video properties
@@ -15,7 +54,7 @@ h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fps = int(cap.get(cv2.CAP_PROP_FPS))
 
 # Define line points
-line_points = [(20, 400), (1200, 400)]
+line_points = [(20, 400), (600, 400)]
 
 # Video writer
 video_writer = cv2.VideoWriter("object_counting_output6.avi", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
